@@ -1,0 +1,9 @@
+dry_run = true
+
+[[path_mappings]]
+source = 'from_path_01'
+target = 'to_path_01'
+[[path_mappings]]
+source = 'from_path_02'
+target = 'to_path_0"1"'
+

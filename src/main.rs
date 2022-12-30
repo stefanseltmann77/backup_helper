@@ -1,41 +1,51 @@
-use std::collections::HashSet;
-use std::fs::{DirEntry, read_dir};
-use std::iter::FromIterator;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
+use config::Config;
 use env_logger::Env;
-use log::info;
+use serde_derive::Deserialize;
 
-fn list_files(dir_path: &Path) -> HashSet<PathBuf> {
-    let files: Vec<Result<DirEntry, std::io::Error>> = read_dir(dir_path).unwrap().collect();
-    let mut files_path: Vec<PathBuf> = vec![];
-    for element in files {
-        files_path.push(element.unwrap().path());
-    }
-    HashSet::from_iter(files_path.clone())
+use backup_helper::{Cli, sync_files};
+
+#[derive(Debug, Deserialize)]
+struct PathMapping {
+    source: String,
+    target: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct AppConfig {
+    dry_run: bool,
+    path_mappings: Vec<PathMapping>,
+}
+
+impl AppConfig {
+    fn new() -> AppConfig {
+        env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
+        // let input = Cli::parse();
+
+        let settings = Config::builder()
+            .add_source(config::File::with_name("config_backups"))
+            .build()
+            .unwrap();
+        let app_conf: AppConfig = settings.try_deserialize().unwrap();
+        return app_conf;
+    }
+}
 
 fn main() {
-    env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
-    info!("Starting Backup-Helper");
-    let source_path = Path::new("M:/gesichert/docstash");
-    let target_path = Path::new("I:/Dropbox/data/docstash");
+    let app_conf = AppConfig::new();
+    let dry_run: bool = app_conf.dry_run;
+    println!("Running in dry_run='{:?}'", dry_run);
 
-    let files_source = list_files(source_path);
-    let files_target = list_files(target_path);
-
-    println!("Hello, world!");
-    println!("Hello, world! {}", files_source.len());
-    println!("Hello, world! {}", files_target.len());
-
-    let files_difference = files_source.difference(&files_target);
-    for element in files_difference {
-        println!("{:?}", element)
+    let mut inputs: Vec<Cli> = Vec::new();
+    for path_mapping in app_conf.path_mappings.iter() {
+        inputs.push(Cli {
+            path_source: PathBuf::from(&path_mapping.source),
+            path_target: PathBuf::from(&path_mapping.target),
+            dry_run,
+        });
     }
-    println!("Check");
-    let files_difference = files_source.intersection(&files_target);
-    for element in files_difference {
-        println!("{:?}", element)
+    for input in inputs {
+        sync_files(&input)
     }
 }
