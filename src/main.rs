@@ -1,3 +1,4 @@
+use std::io;
 use std::path::PathBuf;
 
 use config::Config;
@@ -32,11 +33,7 @@ impl AppConfig {
     }
 }
 
-fn main() {
-    let app_conf = AppConfig::new();
-    let dry_run: bool = app_conf.dry_run;
-    println!("Running in dry_run='{:?}'", dry_run);
-
+fn perform_filesync(app_conf: &AppConfig, dry_run: bool) {
     let mut inputs: Vec<Cli> = Vec::new();
     for path_mapping in app_conf.path_mappings.iter() {
         inputs.push(Cli {
@@ -45,7 +42,29 @@ fn main() {
             dry_run,
         });
     }
-    for input in inputs {
+    for input in &inputs {
         sync_files(&input)
     }
+}
+
+fn main() {
+    let app_conf = AppConfig::new();
+    let dry_run: bool = app_conf.dry_run;
+    println!("Running in dry_run='{:?}'", dry_run);
+
+    perform_filesync(&app_conf, dry_run);
+
+    let mut answer = String::new();
+    if dry_run {
+        println!("Settings are set to DRY_RUN! Want do perform copying anyway? (Y/N)");
+        io::stdin().read_line(&mut answer)
+            .ok()
+            .expect("Failed to read line");
+        if answer.trim().to_lowercase() == "y" {
+            perform_filesync(&app_conf, false);
+        }
+    }
+    println!("Finished!");
+    io::stdin().read_line(&mut answer)
+        .ok().expect("...");
 }
