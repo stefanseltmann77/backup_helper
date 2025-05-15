@@ -5,6 +5,7 @@ use std::iter::FromIterator;
 use std::path::PathBuf;
 
 use clap::Parser;
+use log::{debug, info};
 
 #[derive(Parser)]
 pub struct Cli {
@@ -57,8 +58,10 @@ pub fn sync_files(input: &Cli) {
     let files_source: HashSet<PathBuf> = list_files(&input.path_source);
     let files_target: HashSet<PathBuf> = list_files(&input.path_target);
 
-    println!(
-        "Files from Source {}, Files from on Target {}",
+    info!("Processing Files for {}", input.path_source.display());
+    
+    info!(
+        "Files from Source {}, Files from Target {}",
         files_source.len(),
         files_target.len()
     );
@@ -80,7 +83,7 @@ pub fn sync_files(input: &Cli) {
         full_path_source.push(dummy);
         full_path_target.push(dummy);
 
-        println!(
+        debug!(
             "COPY {:?} | {:?}  >>> {:?} ",
             element.file_name().unwrap(),
             full_path_source,
@@ -90,11 +93,11 @@ pub fn sync_files(input: &Cli) {
         if !input.dry_run {
             if !full_path_target.parent().unwrap().exists() {
                 let create_res = create_dir_all(full_path_target.parent().unwrap());
-                println!("{:?}", create_res)
+                info!("{:?}", create_res)
             }
 
             let copy_result = fs::copy(full_path_source, full_path_target).unwrap();
-            println!("{:?}", copy_result)
+            info!("{:?}", copy_result)
         }
     }
 }

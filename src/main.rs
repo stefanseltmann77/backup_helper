@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use config::Config;
 use env_logger::Env;
+use log::info;
 use serde_derive::Deserialize;
 
 use backup_helper::{Cli, sync_files};
@@ -21,7 +22,6 @@ struct AppConfig {
 
 impl AppConfig {
     fn new() -> AppConfig {
-        env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
         // let input = Cli::parse();
 
         let settings = Config::builder()
@@ -48,15 +48,18 @@ fn perform_filesync(app_conf: &AppConfig, dry_run: bool) {
 }
 
 fn main() {
+    // env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
+    env_logger::init();
+    info!("Start backup helper");
     let app_conf = AppConfig::new();
     let dry_run: bool = app_conf.dry_run;
-    println!("Running in dry_run='{:?}'", dry_run);
+    info!("Running in dry_run='{:?}'", dry_run);
 
     perform_filesync(&app_conf, dry_run);
 
     let mut answer = String::new();
     if dry_run {
-        println!("Settings are set to DRY_RUN! Want do perform copying anyway? (Y/N)");
+        info!("Settings are set to DRY_RUN! Want do perform copying anyway? (Y/N)");
         io::stdin().read_line(&mut answer)
             .ok()
             .expect("Failed to read line");
@@ -64,7 +67,7 @@ fn main() {
             perform_filesync(&app_conf, false);
         }
     }
-    println!("Finished!");
+    info!("Finished!");
     io::stdin().read_line(&mut answer)
         .ok().expect("...");
 }
